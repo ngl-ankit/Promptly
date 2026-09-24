@@ -18,8 +18,59 @@ type GrokResponse = {
   generationTimeMs: number;
 };
 
-const MODEL = process.env["XAI_MODEL"] || "grok-4-fast";
-const XAI_URL = "https://api.x.ai/v1/chat/completions";
+const MODEL =
+  process.env["OPENROUTER_MODEL"] || "openai/gpt-oss-20b";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+type OpenRouterMessageContent =
+  | string
+  | Array<{ type?: string; text?: string }>
+  | null;
+
+type OpenRouterResponse = {
+  choices?: Array<{
+    finish_reason?: string | null;
+    message?: { content?: OpenRouterMessageContent };
+  }>;
+  model?: string;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+};
+
+function readMessageContent(content: OpenRouterMessageContent): string {
+  if (typeof content === "string") {
+    return content.trim();
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter((part) => part.type === undefined || part.type === "text")
+      .map((part) => part.text ?? "")
+      .join("")
+      .trim();
+  }
+  return "";
+}
+
+function readProviderError(errorText: string): string {
+  try {
+    const parsed = JSON.parse(errorText) as {
+      error?: { message?: unknown } | string;
+      message?: unknown;
+    };
+    const error =
+      typeof parsed.error === "string"
+        ? parsed.error
+        : parsed.error && typeof parsed.error === "object"
+          ? parsed.error.message
+          : parsed.message;
+    return typeof error === "string" ? error : "";
+  } catch {
+    return "";
+  }
+}
 
 function extractJson(content: string): unknown {
   const cleaned = content
@@ -44,7 +95,11 @@ export async function askGrok(
   messages: ChatMessage[],
   options: { json?: boolean; timeoutMs?: number } = {},
 ): Promise<GrokResponse> {
-  const key = process.env["XAI_API_KEY"];
+  // XAI_API_KEY is retained as a compatibility alias for existing Render
+  // services that already store the OpenRouter key under the old variable name.
+  const key =
+    process.env["OPENROUTER_API_KEY"]?.trim() ||
+    process.env["XAI_API_KEY"]?.trim();
   if (!key) {
     throw new Error("AI service is not configured");
   }
@@ -57,35 +112,31 @@ export async function askGrok(
   const started = performance.now();
 
   try {
-    const response = await fetch(XAI_URL, {
+    const response = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/ngl-ankit/Promptly",
+        "X-Title": "Promptly",
       },
       body: JSON.stringify({
         model: MODEL,
         temperature: 0.25,
+        max_tokens: 8192,
         messages,
+        ...(options.json ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      let providerMessage = "";
-      try {
-        const parsed = JSON.parse(errorText) as {
-          error?: { message?: string } | string;
-        };
-        providerMessage =
-          typeof parsed.error === "string"
-            ? parsed.error
-            : parsed.error?.message || "";
-      } catch {
-        providerMessage = "";
-      }
-      const detail = providerMessage.replace(/\s+/g, " ").slice(0, 180);
+      const providerMessage = readProviderError(errorText);
+      const detail = providerMessage
+        .replaceAll(key, "[redacted]")
+        .replace(/\s+/g, " ")
+        .slice(0, 180);
       throw new Error(
         response.status === 429
           ? "AI service rate limit reached"
@@ -95,16 +146,17 @@ export async function askGrok(
       );
     }
 
-    const payload = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-      model?: string;
-      usage?: {
-        prompt_tokens?: number;
-        completion_tokens?: number;
-        total_tokens?: number;
-      };
-    };
-    const content = payload.choices?.[0]?.message?.content?.trim();
+    let payload: OpenRouterResponse;
+    try {
+      payload = (await response.json()) as OpenRouterResponse;
+    } catch {
+      throw new Error("AI service returned an invalid response");
+    }
+    const choice = payload.choices?.[0];
+    if (choice?.finish_reason === "length") {
+      throw new Error("AI response exceeded the output limit");
+    }
+    const content = readMessageContent(choice?.message?.content ?? null);
     if (!content) {
       throw new Error("AI returned an empty response");
     }

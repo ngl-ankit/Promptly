@@ -16,7 +16,10 @@ services:
         value: "10000"
       - key: HOST
         value: "0.0.0.0"
+      # Keep the existing Render secret name so current deployments do not
+      # need the OpenRouter key re-entered. The server also accepts the
+      # preferred OPENROUTER_API_KEY name.
       - key: XAI_API_KEY
         sync: false
-      - key: XAI_MODEL
-        value: "grok-4-fast"
+      - key: OPENROUTER_MODEL
+        value: "openai/gpt-oss-20b"

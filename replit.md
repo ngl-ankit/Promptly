@@ -1,6 +1,6 @@
 # Promptly
 
-Promptly turns rough ideas into useful, structured prompts with Grok, while keeping drafts and history local to the browser.
+Promptly turns rough ideas into useful, structured prompts with OpenAI gpt-oss-20b via OpenRouter, while keeping drafts and history local to the browser.
 
 ## Run & Operate
 
@@ -10,7 +10,7 @@ Promptly turns rough ideas into useful, structured prompts with Grok, while keep
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `XAI_API_KEY` — server-side xAI credential
+- Required env: `OPENROUTER_API_KEY` (preferred) or the legacy `XAI_API_KEY` — server-side OpenRouter credential
 
 ## Stack
 
