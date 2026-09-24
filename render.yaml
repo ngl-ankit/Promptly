@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: promptly
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: pnpm install --frozen-lockfile && PORT=10000 BASE_PATH=/ pnpm run typecheck && PORT=10000 BASE_PATH=/ pnpm --filter @workspace/promptly run build && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: PORT
+        value: "10000"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: XAI_API_KEY
+        sync: false
+      - key: XAI_MODEL
+        value: "grok-4-fast"

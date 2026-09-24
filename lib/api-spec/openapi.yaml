@@ -1,0 +1,305 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: promptly
+    description: Promptly AI operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /generate:
+    post:
+      operationId: generatePrompt
+      tags: [promptly]
+      summary: Generate a structured prompt from an idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Generated prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /optimize:
+    post:
+      operationId: optimizePrompt
+      tags: [promptly]
+      summary: Optimize an existing prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Optimized prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /analyze:
+    post:
+      operationId: analyzePrompt
+      tags: [promptly]
+      summary: Analyze an existing prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromptRequest"
+      responses:
+        "200":
+          description: Prompt analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /improve:
+    post:
+      operationId: improvePrompt
+      tags: [promptly]
+      summary: Apply a focused improvement to a prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImproveRequest"
+      responses:
+        "200":
+          description: Improved prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /playground:
+    post:
+      operationId: runPlayground
+      tags: [promptly]
+      summary: Run a prompt against Grok
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaygroundRequest"
+      responses:
+        "200":
+          description: Playground response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaygroundResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    PromptRequest:
+      type: object
+      properties:
+        input:
+          type: string
+          minLength: 1
+          maxLength: 12000
+        promptType:
+          type: string
+          maxLength: 80
+        preset:
+          type: string
+          maxLength: 80
+        action:
+          type: string
+          maxLength: 120
+      required: [input]
+    ImproveRequest:
+      type: object
+      properties:
+        input:
+          type: string
+          minLength: 1
+          maxLength: 12000
+        action:
+          type: string
+          minLength: 1
+          maxLength: 120
+        preset:
+          type: string
+          maxLength: 80
+      required: [input, action]
+    PlaygroundRequest:
+      type: object
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        input:
+          type: string
+          maxLength: 12000
+        preset:
+          type: string
+          maxLength: 80
+      required: [prompt]
+    PromptResult:
+      type: object
+      properties:
+        title: { type: string }
+        prompt: { type: string }
+        promptType: { type: string }
+        intent: { type: string }
+        context: { type: string }
+        requirements:
+          type: array
+          items: { type: string }
+        constraints:
+          type: array
+          items: { type: string }
+        outputFormat: { type: string }
+        missingInformation:
+          type: array
+          items: { type: string }
+        suggestions:
+          type: array
+          items: { type: string }
+        qualityNotes:
+          type: array
+          items: { type: string }
+      required: [title, prompt, promptType, intent, context, requirements, constraints, outputFormat, missingInformation, suggestions, qualityNotes]
+    AnalysisResult:
+      type: object
+      properties:
+        intent: { type: string }
+        promptType: { type: string }
+        clarity: { type: string }
+        structure: { type: string }
+        context: { type: string }
+        ambiguity:
+          type: array
+          items: { type: string }
+        requirements:
+          type: array
+          items: { type: string }
+        constraints:
+          type: array
+          items: { type: string }
+        outputRequirements:
+          type: array
+          items: { type: string }
+        weaknesses:
+          type: array
+          items: { type: string }
+        suggestions:
+          type: array
+          items: { type: string }
+      required: [intent, promptType, clarity, structure, context, ambiguity, requirements, constraints, outputRequirements, weaknesses, suggestions]
+    PlaygroundResult:
+      type: object
+      properties:
+        response: { type: string }
+        model: { type: string }
+        generationTimeMs: { type: integer }
+        usage:
+          type: ["object", "null"]
+          properties:
+            promptTokens: { type: integer }
+            completionTokens: { type: integer }
+            totalTokens: { type: integer }
+      required: [response, model, generationTimeMs]
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string }
+      required: [error]
+

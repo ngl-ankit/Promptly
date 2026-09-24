@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Promptly"
+description = "A fast, local-first AI prompt workspace for turning rough ideas into clear, useful prompts, with optimization, analysis, templates, and history."
+version = "1.0.0"
+id = "artifacts/promptly"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23812
+
+[services.development]
+run = "pnpm --filter @workspace/promptly run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/promptly", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/promptly/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23812"
+BASE_PATH = "/"
